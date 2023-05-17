@@ -1,8 +1,9 @@
 const mysql = require("mysql2");
 const inquirer = require("inquirer");
 const questions = require("./questions.json");
-const sortOptions = require("./helper");
+//const sortOptions = require("./helper");
 require("dotenv").config;
+require("console.table");
 
 const db = mysql.createConnection({
   host: "localhost",
@@ -19,11 +20,60 @@ db.connect(function (err) {
 
 function startInquirer() {
   return inquirer
-        .prompt(questions)
-        .then((answers) => {
-            sortOptions(answers.options, db);
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+    .prompt(questions)
+    .then((answers) => {
+      switch (answers.options) {
+        case "view all departments":
+          const sql1 = `SELECT * FROM department`;
+          db.query(sql1, (err, results) => {
+            if (err) {
+              console.log(err);
+              return;
+            }
+            console.log("\n");
+            console.table(results);
+            startInquirer();
+          });
+          break;
+        case "view all roles":
+            const sql2 = `SELECT role.id, title, name AS department, salary FROM role LEFT JOIN department ON role.department_id = department.id`;
+            db.query(sql2, (err, results) => {
+              if (err) {
+                console.log(err);
+                return;
+              }
+              console.log("\n");
+              console.table(results);
+              startInquirer();
+            });
+          break;
+        case "view all employees":
+            const sql3 = `SELECT t1.id, t1.first_name, t1.last_name, title, name AS department, salary, t2.first_name AS manager FROM employee AS t1 LEFT JOIN role ON t1.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee AS t2 ON t1.manager_id = t2.id `;
+            db.query(sql3, (err, results) => {
+              if (err) {
+                console.log(err);
+                return;
+              }
+              console.log("\n");
+              console.table(results);
+              startInquirer();
+            });
+          break;
+        case "add a department":
+          console.log("function works4");
+          break;
+        case "add a role":
+          console.log("function works5");
+          break;
+        case "add an employee":
+          console.log("function works6");
+          break;
+        case "update an employee role":
+          console.log("function works7");
+          break;
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 }
