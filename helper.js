@@ -1,3 +1,5 @@
+require('console.table')
+
 const sortOptions = (option,db) => {
   switch (option) {
     case "view all departments":
@@ -7,7 +9,9 @@ const sortOptions = (option,db) => {
             console.log(err)
             return
         }
-        console.log(results)
+        console.log('\n')
+        console.table(results)
+        startInquirer()
       })
       break;
     case "view all roles":

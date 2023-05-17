@@ -18,12 +18,12 @@ db.connect(function (err) {
 });
 
 function startInquirer() {
-  inquirer
-    .prompt(questions)
-    .then((answers) => {
-      sortOptions(answers.options, db);
-    })
-    .catch((err) => {
-      console.log(err);
-    });
+  return inquirer
+        .prompt(questions)
+        .then((answers) => {
+            sortOptions(answers.options, db);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
 }
