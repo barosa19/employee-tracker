@@ -1,21 +1,29 @@
-require("dotenv").config;
 const mysql = require("mysql2");
 const inquirer = require("inquirer");
 const questions = require("./questions.json");
 const sortOptions = require("./helper");
+require("dotenv").config;
 
 const db = mysql.createConnection({
   host: "localhost",
-  user: process.env.DB_UN,
-  password: process.env.DB_PW,
-  database: process.env.DB,
+  user: "root",
+  password: "Barosa97!",
+  database: "employee_db",
+  port: 3306,
+});
+db.connect(function (err) {
+  if (err) throw err;
+  console.log("DB connected");
+  startInquirer();
 });
 
-inquirer
-  .prompt(questions)
-  .then((answers) => {
-    sortOptions(answers);
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+function startInquirer() {
+  inquirer
+    .prompt(questions)
+    .then((answers) => {
+      sortOptions(answers.options, db);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+}

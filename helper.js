@@ -1,9 +1,8 @@
-const sortOptions = (options) => {
-  const option = options.options;
+const sortOptions = (option,db) => {
   switch (option) {
     case "view all departments":
-      const sql = `SELECT * FROM departments`;
-      db.query(sql, (err, results) => {
+      const sql = `SELECT * FROM department`;
+      db.query({sql, rowsAsArray: false}, (err, results) => {
         if (err){
             console.log(err)
             return
