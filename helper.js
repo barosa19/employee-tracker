@@ -2,7 +2,14 @@ const sortOptions = (options) => {
   const option = options.options;
   switch (option) {
     case "view all departments":
-      console.log("function works1");
+      const sql = `SELECT * FROM departments`;
+      db.query(sql, (err, results) => {
+        if (err){
+            console.log(err)
+            return
+        }
+        console.log(results)
+      })
       break;
     case "view all roles":
       console.log("function works2");
