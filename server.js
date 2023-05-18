@@ -70,7 +70,7 @@ function startInquirer() {
             .prompt(addDeptQs)
             .then((answers) => {
               const { deptname } = answers;
-              const sql4 = `INSERT INTO department (name) VALUES ("${deptname}")`
+              const sql4 = `INSERT INTO department (name) VALUES ("${deptname}")`;
               db.query(sql4, (err, results) => {
                 if (err) {
                   console.log(err);
@@ -85,7 +85,55 @@ function startInquirer() {
             });
           break;
         case "add a role":
-          console.log("function works5");
+        // grabs an array of departments
+          const sql5 = `SELECT * FROM role`;
+          db.query(sql5, (err, results) => {
+            if (err) {
+              console.log(err);
+              return;
+            }
+            return results;
+          });
+          const departments = results.map((obj) => {
+            return obj.title;
+          });
+          inquirer
+            .prompt([
+              {
+                type: "input",
+                name: "title",
+                message: "What is the name of the role?",
+              },
+              {
+                type: "input",
+                name: "salary",
+                message: "What is the salary of the role?",
+              },
+              {
+                type: "choices",
+                name: "deptname",
+                message: "Which department does the role belong to?",
+                choices: departments,
+              },
+            ])
+            .then((answers) => {
+              const { title, salary, deptname} = answers;
+              const deptID = results.filter((obj) => {
+                return obj.title = deptname
+              })
+              const sql6 = `INSERT INTO department (name) VALUES ("${title},${salary},${deptID[0].id}")`;
+              db.query(sql6, (err, results) => {
+                if (err) {
+                  console.log(err);
+                  return;
+                }
+                console.log(`Added ${title} to the database`);
+                startInquirer();
+              });
+            })
+            .catch((err) => {
+              console.log(err);
+            });
           break;
         case "add an employee":
           console.log("function works6");
