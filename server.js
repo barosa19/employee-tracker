@@ -6,8 +6,8 @@ const {
   addRoleQs,
   addEmployeeQs,
   updateEmployeeQs,
-} = require("./questions.js");
-//const sortOptions = require("./helper");
+} = require("./db_promises");
+const {viewDepartment, viewRoles, viewEmployees} = require("./db_promises.js");
 require("dotenv").config;
 require("console.table");
 
@@ -25,77 +25,64 @@ db.connect(function (err) {
 });
 
 function startInquirer() {
-  return inquirer
-    .prompt(initQs)
-    .then((answers) => {
-      switch (answers.options) {
-        case "view all departments":
-          const sql1 = `SELECT * FROM department`;
-          db.query(sql1, (err, results) => {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            console.log("\n");
-            console.table(results);
-            startInquirer();
-          });
-          break;
-        case "view all roles":
-          const sql2 = `SELECT role.id, title, name AS department, salary FROM role LEFT JOIN department ON role.department_id = department.id`;
-          db.query(sql2, (err, results) => {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            console.log("\n");
-            console.table(results);
-            startInquirer();
-          });
-          break;
-        case "view all employees":
-          const sql3 = `SELECT t1.id, t1.first_name, t1.last_name, title, name AS department, salary, t2.first_name AS manager FROM employee AS t1 LEFT JOIN role ON t1.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee AS t2 ON t1.manager_id = t2.id `;
-          db.query(sql3, (err, results) => {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            console.log("\n");
-            console.table(results);
-            startInquirer();
-          });
-          break;
-        case "add a department":
-          inquirer
-            .prompt(addDeptQs)
-            .then((answers) => {
-              const { deptname } = answers;
-              const sql4 = `INSERT INTO department (name) VALUES ("${deptname}")`;
-              db.query(sql4, (err, results) => {
-                if (err) {
-                  console.log(err);
-                  return;
-                }
-                console.log(`Added ${deptname} to the database`);
+  return inquirer.prompt(initQs).then((answers) => {
+    switch (answers.options) {
+      case "view all departments":
+          viewDepartment()
+            .then((res) => {
+                console.log("\n");
+                console.table(res[0]);
                 startInquirer();
-              });
             })
-            .catch((err) => {
-              console.log(err);
+            .catch((err) => console.log(err))
+        break;
+      case "view all roles":
+        viewRoles()
+        .then((res)=> {
+            console.log("\n");
+            console.table(res[0]);
+          startInquirer();
+        })
+        .catch((err) => console.log(err))
+        break;
+      case "view all employees":
+        viewEmployees()
+        .then((res)=> {
+            console.log("\n");
+            console.table(res[0]);
+          startInquirer();
+        })
+        .catch((err) => console.log(err))
+        break;
+      case "add a department":
+        inquirer
+          .prompt(addDeptQs)
+          .then((answers) => {
+            const { deptname } = answers;
+            const sql4 = `INSERT INTO department (name) VALUES ("${deptname}")`;
+            db.query(sql4, (err, results) => {
+              if (err) {
+                console.log(err);
+                return;
+              }
+              console.log(`Added ${deptname} to the database`);
+              startInquirer();
             });
-          break;
-        case "add a role":
-        // grabs an array of departments
-          const sql5 = `SELECT * FROM role`;
-          db.query(sql5, (err, results) => {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            return results;
+          })
+          .catch((err) => {
+            console.log(err);
           });
+        break;
+      case "add a role":
+        // grabs an array of departments
+        const sql5 = `SELECT * FROM department`;
+        db.query(sql5, (err, results) => {
+          if (err) {
+            console.log(err);
+            return;
+          }
           const departments = results.map((obj) => {
-            return obj.title;
+            return obj.name;
           });
           inquirer
             .prompt([
@@ -110,40 +97,44 @@ function startInquirer() {
                 message: "What is the salary of the role?",
               },
               {
-                type: "choices",
+                type: "list",
                 name: "deptname",
                 message: "Which department does the role belong to?",
                 choices: departments,
               },
             ])
             .then((answers) => {
-              const { title, salary, deptname} = answers;
-              const deptID = results.filter((obj) => {
-                return obj.title = deptname
-              })
-              const sql6 = `INSERT INTO department (name) VALUES ("${title},${salary},${deptID[0].id}")`;
-              db.query(sql6, (err, results) => {
+              const { title, salary, deptname } = answers;
+              console.log(answers)
+              const sql6 = `SELECT id FROM department WHERE name = "${deptname}"`;
+              db.query(sql6, (err, results1) => {
                 if (err) {
                   console.log(err);
                   return;
                 }
-                console.log(`Added ${title} to the database`);
-                startInquirer();
+                console.log(results1)
+                const sql7 = `INSERT INTO role (title, salary, department_id) VALUES ("${title}",${salary},${results1[0].id})`;
+                db.query(sql7, (err, results) => {
+                  if (err) {
+                    console.log(err);
+                    return;
+                  }
+                  console.log(`Added ${title} to the database`);
+                  startInquirer();
+                });
               });
             })
             .catch((err) => {
-              console.log(err);
-            });
-          break;
-        case "add an employee":
-          console.log("function works6");
-          break;
-        case "update an employee role":
-          console.log("function works7");
-          break;
-      }
+                console.log(err);
+        });
     })
-    .catch((err) => {
-      console.log(err);
-    });
+        break;
+      case "add an employee":
+        
+        break;
+      case "update an employee role":
+        console.log("function works7");
+        break;
+    }
+  });
 }
