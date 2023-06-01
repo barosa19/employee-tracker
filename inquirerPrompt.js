@@ -1,4 +1,3 @@
-const mysql = require("mysql2");
 const db = require("./config/connection");
 
 function viewDepartment() {
@@ -52,7 +51,7 @@ const addDeptQs = [
   },
 ];
 
-async function listDepartments() {
+async function addRoleQs() {
   try {
     const departmentObj = await viewDepartment();
     const departmentName = departmentObj[0].map((obj) => obj.name);
@@ -79,11 +78,14 @@ async function listDepartments() {
   }
 }
 
-async function addEmployeePrompt() {
+async function addEmployeeQs() {
+ 
   const roles = await viewRoles()
-  const mapRoles = roles[0].map((obj) => obj.title)
+  const rolesArray = roles[0].map((obj) => obj.title)
+  
   const employees = await viewManagers()
-  const mapEmployees = employees[0].map((obj) => obj.managers)
+  const employeesArray = employees[0].map((obj) => obj.managers)
+
   return [
     {
       type: "input",
@@ -99,47 +101,49 @@ async function addEmployeePrompt() {
       type: "list",
       name: "role",
       message: "What is the employees role?",
-      choices: mapRoles
+      choices: rolesArray
     },
     {
       type: "list",
       name: "manager",
       message: "What is the employees manager?",
-      choices: mapEmployees
+      choices: employeesArray
     },
   ]
 }
 
-async function updateEmployeePrompt() {
+async function updateEmployeeQs() {
+
   const employeeSQL = `SELECT CONCAT(first_name, " ", last_name) AS employee FROM employee `;
   const employees = await db.promise().query(employeeSQL)
-  const mapEmployees = employees[0].map((obj) => obj.employee)
+  const employeesArray = employees[0].map((obj) => obj.employee)
+
   const roles = await viewRoles()
-  const mapRoles = roles[0].map((obj) => obj.title)
+  const rolesArray = roles[0].map((obj) => obj.title)
   return [
     {
       type: "list",
       name: "employee",
       message: "Which employee's role do you want to update?",
-      choices: mapEmployees
+      choices: employeesArray
     },
     {
       type: "list",
       name: "role",
       message: "Which role do you want to assign the selected employee?",
-      choices: mapRoles
+      choices: rolesArray
     },
   ]
 }
 
 module.exports = {
-  initQs,
-  addDeptQs,
   viewDepartment,
   viewRoles,
   viewEmployees,
   viewManagers,
-  listDepartments,
-  addEmployeePrompt,
-  updateEmployeePrompt
+  initQs,
+  addDeptQs,
+  addRoleQs,
+  addEmployeeQs,
+  updateEmployeeQs
 };
