@@ -1,8 +1,16 @@
-const mysql = require("mysql2");
-const db = require('./config/connection')
+const db = require("./config/connection");
 const inquirer = require("inquirer");
-const {initQs,addDeptQs,addRoleQs,addEmployeeQs,updateEmployeeQs,} = require("./questions");
-const {viewDepartment, viewRoles, viewEmployees, viewManagers, listDepartments} = require("./db_promises.js");
+const {
+  initQs,
+  addDeptQs,
+  viewDepartment,
+  viewRoles,
+  viewEmployees,
+  listDepartments,
+  addEmployeePrompt,
+  updateEmployeePrompt,
+} = require("./inquirerPrompt.js");
+
 require("dotenv").config;
 require("console.table");
 
@@ -13,34 +21,34 @@ db.connect(function (err) {
 });
 
 function startInquirer() {
-  return inquirer.prompt(initQs).then( async (answers) => {
+  return inquirer.prompt(initQs).then(async (answers) => {
     switch (answers.options) {
       case "view all departments":
-          viewDepartment()
-            .then((res) => {
-                console.log("\n");
-                console.table(res[0]);
-                startInquirer();
-            })
-            .catch((err) => console.log(err))
+        viewDepartment()
+          .then((res) => {
+            console.log("\n");
+            console.table(res[0]);
+            startInquirer();
+          })
+          .catch((err) => console.log(err));
         break;
       case "view all roles":
         viewRoles()
-        .then((res)=> {
+          .then((res) => {
             console.log("\n");
             console.table(res[0]);
-          startInquirer();
-        })
-        .catch((err) => console.log(err))
+            startInquirer();
+          })
+          .catch((err) => console.log(err));
         break;
       case "view all employees":
         viewEmployees()
-        .then((res)=> {
+          .then((res) => {
             console.log("\n");
             console.table(res[0]);
-          startInquirer();
-        })
-        .catch((err) => console.log(err))
+            startInquirer();
+          })
+          .catch((err) => console.log(err));
         break;
       case "add a department":
         inquirer
@@ -62,70 +70,72 @@ function startInquirer() {
           });
         break;
       case "add a role":
-          const departments = await listDepartments()
-          inquirer
-            .prompt(departments)
-            .then((answers) => {
-              const { title, salary, deptname } = answers;
-              console.log(answers)
-              const sql6 = `SELECT id FROM department WHERE name = "${deptname}"`;
-              db.query(sql6, (err, results1) => {
-                if (err) {
-                  console.log(err);
-                  return;
-                }
-                console.log(results1)
-                const sql7 = `INSERT INTO role (title, salary, department_id) VALUES ("${title}",${salary},${results1[0].id})`;
-                db.query(sql7, (err, results) => {
-                  if (err) {
-                    console.log(err);
-                    return;
-                  }
-                  console.log(`Added ${title} to the database`);
-                  startInquirer();
-                });
-              });
-            })
-            .catch((err) => {
-                console.log(err);
-        /* }); */
-    })
+        const departments = await listDepartments();
+        inquirer.prompt(departments).then(async (answers) => {
+          const { title, salary, deptname } = answers;
+
+          const sqlA = `SELECT id FROM department WHERE name = "${deptname}"`;
+          const deptIDarray = await db.promise().query(sqlA);
+          const deptID = deptIDarray[0];
+
+          const sqlB = `INSERT INTO role (title, salary, department_id) VALUES ("${title}",${salary},${deptID[0].id})`;
+          db.query(sqlB, (err, results) => {
+            if (err) {
+              console.log(err);
+              return;
+            }
+            console.log(`Added ${title} to the database`);
+            startInquirer();
+          });
+        });
         break;
       case "add an employee":
-        const roles = await viewRoles()
-        const mapRoles = roles[0].map((obj) => obj.title)
-        const employees = await viewManagers()
-        const mapEmployees = employees[0].map((obj) => obj.first_name)
+        const employeePrompt = await addEmployeePrompt();
         inquirer
-            .prompt([
-              {
-                type: "input",
-                name: "first_name",
-                message: "What is the employees first name?",
-              },
-              {
-                type: "input",
-                name: "last_name",
-                message: "What is the employees last name?",
-              },
-              {
-                type: "list",
-                name: "role",
-                message: "What is the employees role?",
-                choices: mapRoles
-              },
-              {
-                type: "list",
-                name: "manager",
-                message: "What is the employees manager?",
-                choices: []
-              },
-            ])
-            .then((answers) => console.log(answers))
-            .catch((err) => console.log(err))
+          .prompt(employeePrompt)
+          .then(async (answers) => {
+            const { first_name, last_name, role, manager } = answers;
+
+            const roleSQL = `SELECT id FROM role WHERE title = "${role}"`;
+            const roleArray = await db.promise().query(roleSQL);
+            const roleId = roleArray[0];
+
+            const managerSQL = `SELECT id FROM employee WHERE CONCAT(first_name, " ", last_name) = "${manager}"`;
+            const managerArray = await db.promise().query(managerSQL);
+            const managerID = managerArray[0];
+
+            const insertSQL = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("${first_name}","${last_name}",${roleId[0].id},${managerID[0].id})`;
+            db.query(insertSQL, (err, results) => {
+              if (err) {
+                console.log(err);
+                return;
+              }
+              console.log(`Added ${first_name} ${last_name} to the database`);
+              startInquirer();
+            });
+          })
+          .catch((err) => console.log(err));
         break;
       case "update an employee role":
-        console.log("function works7");
+        const updatePrompt = await updateEmployeePrompt();
+        inquirer
+          .prompt(updatePrompt)
+          .then(async (answers) => {
+            const { employee, role } = answers;
+            const roleSQL = `SELECT id FROM role WHERE title = "${role}"`;
+            const roleArray = await db.promise().query(roleSQL);
+            const roleId = roleArray[0];
+            const updateSQL = `UPDATE employee SET role_id = ${roleId[0].id} WHERE CONCAT(first_name, " ", last_name) = "${employee}"`;
+            db.query(updateSQL, (err, results) => {
+              if (err) {
+                console.log(err);
+                return;
+              }
+              console.log(`Updated employee's role`);
+              startInquirer();
+            });
+          })
+          .catch((err) => console.log(err));
         break;
     }
   });
